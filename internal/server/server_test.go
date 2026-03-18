@@ -94,7 +94,9 @@ func TestGetDeployment(t *testing.T) {
 	srv.Handler().ServeHTTP(createW, createReq)
 
 	var created model.Deployment
-	json.NewDecoder(createW.Body).Decode(&created)
+	if err := json.NewDecoder(createW.Body).Decode(&created); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 
 	// Get it.
 	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/deployments/"+created.ID, nil)
