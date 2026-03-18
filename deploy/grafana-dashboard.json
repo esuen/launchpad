@@ -8,11 +8,14 @@
       {
         "title": "Request Rate (req/s)",
         "type": "timeseries",
+        "datasource": {"type": "prometheus", "uid": ""},
         "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
         "targets": [
           {
-            "expr": "sum(rate(http_requests_total{app=\"launchpad\"}[1m])) by (path)",
-            "legendFormat": "{{path}}"
+            "datasource": {"type": "prometheus", "uid": ""},
+            "expr": "sum(rate(http_requests_total{app=\"launchpad\"}[2m])) by (path)",
+            "legendFormat": "{{path}}",
+            "refId": "A"
           }
         ],
         "fieldConfig": {
@@ -24,19 +27,26 @@
       {
         "title": "Request Latency p50 / p95 / p99",
         "type": "timeseries",
+        "datasource": {"type": "prometheus", "uid": ""},
         "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
         "targets": [
           {
-            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{app=\"launchpad\"}[1m])) by (le))",
-            "legendFormat": "p50"
+            "datasource": {"type": "prometheus", "uid": ""},
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{app=\"launchpad\"}[2m])) by (le))",
+            "legendFormat": "p50",
+            "refId": "A"
           },
           {
-            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{app=\"launchpad\"}[1m])) by (le))",
-            "legendFormat": "p95"
+            "datasource": {"type": "prometheus", "uid": ""},
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{app=\"launchpad\"}[2m])) by (le))",
+            "legendFormat": "p95",
+            "refId": "B"
           },
           {
-            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{app=\"launchpad\"}[1m])) by (le))",
-            "legendFormat": "p99"
+            "datasource": {"type": "prometheus", "uid": ""},
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{app=\"launchpad\"}[2m])) by (le))",
+            "legendFormat": "p99",
+            "refId": "C"
           }
         ],
         "fieldConfig": {
@@ -48,11 +58,14 @@
       {
         "title": "Error Rate (5xx)",
         "type": "timeseries",
+        "datasource": {"type": "prometheus", "uid": ""},
         "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
         "targets": [
           {
-            "expr": "sum(rate(http_requests_total{app=\"launchpad\", status=~\"5..\"}[1m]))",
-            "legendFormat": "5xx errors/s"
+            "datasource": {"type": "prometheus", "uid": ""},
+            "expr": "sum(rate(http_requests_total{app=\"launchpad\", status=~\"5..\"}[2m])) or vector(0)",
+            "legendFormat": "5xx errors/s",
+            "refId": "A"
           }
         ],
         "fieldConfig": {
@@ -64,11 +77,14 @@
       {
         "title": "Requests by Status Code",
         "type": "timeseries",
+        "datasource": {"type": "prometheus", "uid": ""},
         "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
         "targets": [
           {
-            "expr": "sum(rate(http_requests_total{app=\"launchpad\"}[1m])) by (status)",
-            "legendFormat": "{{status}}"
+            "datasource": {"type": "prometheus", "uid": ""},
+            "expr": "sum(rate(http_requests_total{app=\"launchpad\"}[2m])) by (status)",
+            "legendFormat": "{{status}}",
+            "refId": "A"
           }
         ],
         "fieldConfig": {
@@ -80,20 +96,26 @@
       {
         "title": "Active Pods",
         "type": "stat",
+        "datasource": {"type": "prometheus", "uid": ""},
         "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
         "targets": [
           {
-            "expr": "count(up{app=\"launchpad\"} == 1)"
+            "datasource": {"type": "prometheus", "uid": ""},
+            "expr": "count(up{app=\"launchpad\"} == 1)",
+            "refId": "A"
           }
         ]
       },
       {
         "title": "Total Requests",
         "type": "stat",
+        "datasource": {"type": "prometheus", "uid": ""},
         "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
         "targets": [
           {
-            "expr": "sum(http_requests_total{app=\"launchpad\"})"
+            "datasource": {"type": "prometheus", "uid": ""},
+            "expr": "sum(http_requests_total{app=\"launchpad\"})",
+            "refId": "A"
           }
         ]
       }

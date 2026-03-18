@@ -2,6 +2,10 @@
 
 A deployment tracker API built with Go, deployed to Kubernetes. Demonstrates a production-shaped cloud-native architecture: CI/CD, containerization, Helm-based deployment, Postgres, TLS ingress, and full observability with Prometheus and Grafana.
 
+## Observability
+
+![Grafana Dashboard](docs/grafana-dashboard.png)
+
 ## Architecture
 
 ```mermaid
