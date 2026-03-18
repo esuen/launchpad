@@ -7,7 +7,7 @@ DOCKER_TAG := latest
 HELM_CHART := deploy/helm/launchpad
 HELM_RELEASE := launchpad
 
-.PHONY: build run test lint clean docker-build docker-run helm-lint helm-template helm-install helm-uninstall
+.PHONY: build run test lint clean docker-build docker-run helm-lint helm-template helm-install helm-uninstall grafana prometheus
 
 build:
 	go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/server
@@ -41,3 +41,12 @@ helm-install:
 
 helm-uninstall:
 	helm uninstall $(HELM_RELEASE)
+
+grafana:
+	@echo "Grafana: http://localhost:3000 (admin/admin)"
+	@echo "Dashboard: http://localhost:3000/d/launchpad/launchpad"
+	kubectl port-forward svc/grafana 3000:80
+
+prometheus:
+	@echo "Prometheus: http://localhost:9090"
+	kubectl port-forward svc/prometheus-server 9090:80

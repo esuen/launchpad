@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/esuen/launchpad/internal/database"
 	"github.com/esuen/launchpad/internal/server"
 	"github.com/esuen/launchpad/internal/store"
 )
@@ -25,7 +26,30 @@ func main() {
 		port = "8080"
 	}
 
-	st := store.New()
+	var st store.Store
+
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn != "" {
+		db, err := database.Connect(dsn)
+		if err != nil {
+			slog.Error("failed to connect to database", "error", err)
+			os.Exit(1)
+		}
+		defer db.Close()
+
+		slog.Info("running database migrations")
+		if err := database.Migrate(db); err != nil {
+			slog.Error("failed to run migrations", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("database ready")
+
+		st = store.NewPostgres(db)
+	} else {
+		slog.Warn("DATABASE_URL not set, using in-memory store")
+		st = store.NewMemory()
+	}
+
 	srv := server.New(logger, st)
 
 	httpServer := &http.Server{

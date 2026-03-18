@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -9,21 +8,20 @@ import (
 	"github.com/google/uuid"
 )
 
-// Store is an in-memory deployment store.
-type Store struct {
+// MemoryStore is an in-memory deployment store.
+type MemoryStore struct {
 	mu          sync.RWMutex
 	deployments map[string]model.Deployment
 }
 
-// New creates a new Store.
-func New() *Store {
-	return &Store{
+// NewMemory creates a new MemoryStore.
+func NewMemory() *MemoryStore {
+	return &MemoryStore{
 		deployments: make(map[string]model.Deployment),
 	}
 }
 
-// Create adds a new deployment and returns it.
-func (s *Store) Create(serviceName, version, environment string) model.Deployment {
+func (s *MemoryStore) Create(serviceName, version, environment string) (model.Deployment, error) {
 	d := model.Deployment{
 		ID:          uuid.New().String(),
 		ServiceName: serviceName,
@@ -37,14 +35,10 @@ func (s *Store) Create(serviceName, version, environment string) model.Deploymen
 	s.deployments[d.ID] = d
 	s.mu.Unlock()
 
-	return d
+	return d, nil
 }
 
-// ErrNotFound is returned when a deployment is not found.
-var ErrNotFound = fmt.Errorf("deployment not found")
-
-// Get returns a deployment by ID.
-func (s *Store) Get(id string) (model.Deployment, error) {
+func (s *MemoryStore) Get(id string) (model.Deployment, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -55,8 +49,7 @@ func (s *Store) Get(id string) (model.Deployment, error) {
 	return d, nil
 }
 
-// List returns all deployments, optionally filtered by service name and/or environment.
-func (s *Store) List(service, environment string) []model.Deployment {
+func (s *MemoryStore) List(service, environment string) ([]model.Deployment, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -70,5 +63,5 @@ func (s *Store) List(service, environment string) []model.Deployment {
 		}
 		results = append(results, d)
 	}
-	return results
+	return results, nil
 }

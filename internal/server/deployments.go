@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/esuen/launchpad/internal/model"
@@ -28,7 +29,12 @@ func (s *Server) handleCreateDeployment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	d := s.store.Create(req.ServiceName, req.Version, req.Environment)
+	d, err := s.store.Create(req.ServiceName, req.Version, req.Environment)
+	if err != nil {
+		slog.Error("failed to create deployment", "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
 	writeJSON(w, http.StatusCreated, d)
 }
 
@@ -40,6 +46,11 @@ func (s *Server) handleGetDeployment(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "deployment not found"})
 		return
 	}
+	if err != nil {
+		slog.Error("failed to get deployment", "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
 
 	writeJSON(w, http.StatusOK, d)
 }
@@ -48,7 +59,12 @@ func (s *Server) handleListDeployments(w http.ResponseWriter, r *http.Request) {
 	service := r.URL.Query().Get("service")
 	environment := r.URL.Query().Get("environment")
 
-	deployments := s.store.List(service, environment)
+	deployments, err := s.store.List(service, environment)
+	if err != nil {
+		slog.Error("failed to list deployments", "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
 	if deployments == nil {
 		deployments = []model.Deployment{}
 	}

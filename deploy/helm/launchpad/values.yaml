@@ -13,6 +13,12 @@ service:
 config:
   port: "8080"
 
+secret:
+  databaseURL: "postgres://launchpad:launchpad@postgresql:5432/launchpad?sslmode=disable"
+
+ingress:
+  host: launchpad.local
+
 resources:
   requests:
     cpu: 50m

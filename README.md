@@ -1,6 +1,6 @@
 # Launchpad
 
-A deployment tracker API built with Go, deployed to Kubernetes. Demonstrates a production-shaped cloud-native architecture: CI/CD, containerization, Helm-based deployment, health checks, Prometheus metrics, and structured logging.
+A deployment tracker API built with Go, deployed to Kubernetes. Demonstrates a production-shaped cloud-native architecture: CI/CD, containerization, Helm-based deployment, Postgres, TLS ingress, and full observability with Prometheus and Grafana.
 
 ## Architecture
 
@@ -11,21 +11,18 @@ graph LR
     CI -->|lint + test| CI
     CI -->|build + push| GHCR[ghcr.io]
 
-    GHCR -->|pull image| K8s[Kubernetes / kind]
+    Client[Client] -->|HTTPS| Ingress[NGINX Ingress<br/>+ TLS via cert-manager]
 
     subgraph Kubernetes
-        HelmChart[Helm Chart] -->|creates| Deploy[Deployment<br/>2 replicas]
-        HelmChart -->|creates| Svc[Service<br/>ClusterIP]
-        HelmChart -->|creates| CM[ConfigMap]
-        CM -->|env vars| Deploy
-        Deploy --> PodA[Pod]
-        Deploy --> PodB[Pod]
-        Svc -->|routes traffic| PodA
-        Svc -->|routes traffic| PodB
+        Ingress -->|route| Svc[Service]
+        Svc --> PodA[Pod]
+        Svc --> PodB[Pod]
+        PodA --> PG[(Postgres)]
+        PodB --> PG
+        Prometheus -->|scrape /metrics| PodA
+        Prometheus -->|scrape /metrics| PodB
+        Grafana -->|query| Prometheus
     end
-
-    PodA -->|/healthz /readyz| Probes[Liveness + Readiness Probes]
-    PodA -->|/metrics| Prom[Prometheus metrics]
 ```
 
 ## CI/CD Pipeline
@@ -54,29 +51,34 @@ graph LR
 
 ```bash
 # Create a deployment
-curl -X POST localhost:8080/api/v1/deployments/ \
+curl -sk -X POST https://launchpad.local/api/v1/deployments/ \
   -H "Content-Type: application/json" \
   -d '{"service_name":"api-server","version":"v1.0.0","environment":"production"}'
 
 # List deployments
-curl localhost:8080/api/v1/deployments/
+curl -sk https://launchpad.local/api/v1/deployments/
 
 # Filter by environment
-curl localhost:8080/api/v1/deployments/?environment=production
+curl -sk https://launchpad.local/api/v1/deployments/?environment=production
 ```
 
 ## Project Structure
 
 ```
-├── cmd/server/          # Entrypoint, config, graceful shutdown
+├── cmd/server/              # Entrypoint, config, graceful shutdown
 ├── internal/
-│   ├── model/           # Domain types (Deployment, status constants)
-│   ├── server/          # HTTP handlers, middleware, routing
-│   └── store/           # In-memory deployment store
-├── deploy/helm/         # Helm chart (Deployment, Service, ConfigMap)
-├── .github/workflows/   # CI pipeline
-├── Dockerfile           # Multi-stage build (golang:alpine → alpine)
-└── Makefile             # Build, test, lint, docker, helm targets
+│   ├── database/            # Postgres connection, migrations
+│   │   └── migrations/      # SQL migration files
+│   ├── model/               # Domain types (Deployment, status constants)
+│   ├── server/              # HTTP handlers, middleware, routing
+│   └── store/               # Store interface, Postgres + in-memory implementations
+├── deploy/
+│   ├── helm/launchpad/      # Helm chart (Deployment, Service, Ingress, Secret, ConfigMap)
+│   ├── kind-config.yaml     # kind cluster config with ingress port mappings
+│   └── grafana-dashboard.json
+├── .github/workflows/       # CI pipeline
+├── Dockerfile               # Multi-stage build (golang:alpine → alpine)
+└── Makefile                 # Build, test, lint, docker, helm, observability targets
 ```
 
 ## Getting Started
@@ -89,37 +91,67 @@ curl localhost:8080/api/v1/deployments/?environment=production
 - kubectl
 - Helm
 
-### Run Locally
+### Deploy to kind
 
 ```bash
-make run
+# Create cluster with ingress support
+kind create cluster --name launchpad --config deploy/kind-config.yaml
+
+# Install infrastructure
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+# Install NGINX ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+# Install cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.2/cert-manager.yaml
+
+# Install Postgres
+helm install postgresql bitnami/postgresql \
+  --set auth.username=launchpad --set auth.password=launchpad --set auth.database=launchpad
+
+# Install Prometheus
+helm install prometheus prometheus-community/prometheus \
+  --set alertmanager.enabled=false --set prometheus-node-exporter.enabled=false \
+  --set prometheus-pushgateway.enabled=false --set kube-state-metrics.enabled=false
+
+# Install Grafana
+helm install grafana grafana/grafana --set adminPassword=admin \
+  --set persistence.enabled=false \
+  --set datasources."datasources\.yaml".apiVersion=1 \
+  --set datasources."datasources\.yaml".datasources[0].name=Prometheus \
+  --set datasources."datasources\.yaml".datasources[0].type=prometheus \
+  --set datasources."datasources\.yaml".datasources[0].url=http://prometheus-server \
+  --set datasources."datasources\.yaml".datasources[0].access=proxy \
+  --set datasources."datasources\.yaml".datasources[0].isDefault=true
+
+# Build and load app image
+make docker-build
+kind load docker-image ghcr.io/esuen/launchpad:latest --name launchpad
+
+# Deploy app
+helm upgrade --install launchpad deploy/helm/launchpad --set image.pullPolicy=Never
+
+# Add hosts entry (requires sudo)
+echo '127.0.0.1 launchpad.local' | sudo tee -a /etc/hosts
+
+# Verify
+curl -sk https://launchpad.local/healthz
+```
+
+### Run Locally (no Kubernetes)
+
+```bash
+make run  # starts with in-memory store (no Postgres needed)
 ```
 
 ### Run Tests
 
 ```bash
 make test
-```
-
-### Deploy to kind
-
-```bash
-# Create cluster
-kind create cluster --name launchpad
-
-# Build and load image
-make docker-build
-kind load docker-image ghcr.io/esuen/launchpad:latest --name launchpad
-
-# Deploy
-make helm-install
-
-# Verify
-kubectl get pods -l app=launchpad
-
-# Access the API
-kubectl port-forward svc/launchpad 8080:80
-curl localhost:8080/healthz
 ```
 
 ### All Make Targets
@@ -136,10 +168,12 @@ curl localhost:8080/healthz
 | `make helm-template` | Render Helm templates |
 | `make helm-install` | Deploy to current K8s context |
 | `make helm-uninstall` | Remove from K8s |
+| `make grafana` | Port-forward Grafana (http://localhost:3000) |
+| `make prometheus` | Port-forward Prometheus (http://localhost:9090) |
 
 ## Roadmap
 
-- **Phase 1** (current): Go API, Docker, Helm, kind, GitHub Actions CI
-- **Phase 2**: Postgres, ingress, TLS, secrets management, Prometheus + Grafana
+- **Phase 1**: Go API, Docker, Helm, kind, GitHub Actions CI
+- **Phase 2** (current): Postgres, ingress + TLS, secrets, Prometheus + Grafana
 - **Phase 3**: Argo CD, GitOps deployment flow
 - **Phase 4**: Argo Rollouts, policy enforcement, OpenTelemetry

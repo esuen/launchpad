@@ -13,11 +13,11 @@ import (
 // Server is the main application server.
 type Server struct {
 	logger *slog.Logger
-	store  *store.Store
+	store  store.Store
 }
 
 // New creates a new Server.
-func New(logger *slog.Logger, store *store.Store) *Server {
+func New(logger *slog.Logger, store store.Store) *Server {
 	return &Server{logger: logger, store: store}
 }
 

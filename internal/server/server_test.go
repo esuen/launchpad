@@ -14,7 +14,7 @@ import (
 
 func newTestServer() *Server {
 	logger := slog.Default()
-	st := store.New()
+	st := store.NewMemory()
 	return New(logger, st)
 }
 

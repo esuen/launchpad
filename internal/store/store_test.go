@@ -7,8 +7,11 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	s := New()
-	d := s.Create("api-server", "v1.2.3", "production")
+	s := NewMemory()
+	d, err := s.Create("api-server", "v1.2.3", "production")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if d.ServiceName != "api-server" {
 		t.Errorf("expected service_name api-server, got %s", d.ServiceName)
@@ -31,8 +34,11 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	s := New()
-	created := s.Create("api-server", "v1.0.0", "staging")
+	s := NewMemory()
+	created, err := s.Create("api-server", "v1.0.0", "staging")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	got, err := s.Get(created.ID)
 	if err != nil {
@@ -44,7 +50,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetNotFound(t *testing.T) {
-	s := New()
+	s := NewMemory()
 
 	_, err := s.Get("nonexistent")
 	if err != ErrNotFound {
@@ -53,31 +59,34 @@ func TestGetNotFound(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	s := New()
+	s := NewMemory()
 	s.Create("api-server", "v1.0.0", "production")
 	s.Create("api-server", "v1.1.0", "staging")
 	s.Create("web-app", "v2.0.0", "production")
 
 	// List all.
-	all := s.List("", "")
+	all, err := s.List("", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(all) != 3 {
 		t.Errorf("expected 3 deployments, got %d", len(all))
 	}
 
 	// Filter by service.
-	byService := s.List("api-server", "")
+	byService, _ := s.List("api-server", "")
 	if len(byService) != 2 {
 		t.Errorf("expected 2 deployments for api-server, got %d", len(byService))
 	}
 
 	// Filter by environment.
-	byEnv := s.List("", "production")
+	byEnv, _ := s.List("", "production")
 	if len(byEnv) != 2 {
 		t.Errorf("expected 2 deployments for production, got %d", len(byEnv))
 	}
 
 	// Filter by both.
-	byBoth := s.List("api-server", "production")
+	byBoth, _ := s.List("api-server", "production")
 	if len(byBoth) != 1 {
 		t.Errorf("expected 1 deployment for api-server+production, got %d", len(byBoth))
 	}

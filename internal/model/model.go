@@ -14,10 +14,10 @@ const (
 
 // Deployment represents a single deployment of a service.
 type Deployment struct {
-	ID          string           `json:"id"`
-	ServiceName string           `json:"service_name"`
-	Version     string           `json:"version"`
-	Environment string           `json:"environment"`
-	Status      DeploymentStatus `json:"status"`
-	CreatedAt   time.Time        `json:"created_at"`
+	ID          string           `json:"id" db:"id"`
+	ServiceName string           `json:"service_name" db:"service_name"`
+	Version     string           `json:"version" db:"version"`
+	Environment string           `json:"environment" db:"environment"`
+	Status      DeploymentStatus `json:"status" db:"status"`
+	CreatedAt   time.Time        `json:"created_at" db:"created_at"`
 }
