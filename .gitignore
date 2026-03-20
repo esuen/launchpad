@@ -29,3 +29,6 @@ Thumbs.db
 
 # Helm
 charts/*.tgz
+
+# Internal docs (personal reference, not for repo)
+docs/internal/
