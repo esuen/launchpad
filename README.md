@@ -230,6 +230,7 @@ This project runs locally on kind. In a production environment, you'd make these
 | Observability | Self-hosted Prometheus + Grafana | Datadog, Grafana Cloud, or managed Prometheus |
 | Image pull | `kind load` (local) | Pull from registry (standard) |
 | Argo CD access | port-forward | Ingress with SSO/OAuth |
+| GitOps sync | Polling (3 min interval) | GitHub webhook for near-instant sync |
 
 The architecture and patterns are identical — managed services replace self-hosted components for operational efficiency.
 
