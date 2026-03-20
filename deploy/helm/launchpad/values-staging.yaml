@@ -1,0 +1,19 @@
+replicaCount: 1
+
+image:
+  tag: latest
+  pullPolicy: IfNotPresent
+
+secret:
+  databaseURL: "postgres://launchpad:launchpad@postgresql.default.svc.cluster.local:5432/launchpad?sslmode=disable"
+
+ingress:
+  host: staging.launchpad.local
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
