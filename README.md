@@ -132,18 +132,30 @@ helm install grafana grafana/grafana --set adminPassword=admin \
   --set datasources."datasources\.yaml".datasources[0].access=proxy \
   --set datasources."datasources\.yaml".datasources[0].isDefault=true
 
+# Install Argo CD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --server-side --force-conflicts
+
 # Build and load app image
 make docker-build
 kind load docker-image ghcr.io/esuen/launchpad:latest --name launchpad
 
-# Deploy app
-helm upgrade --install launchpad deploy/helm/launchpad --set image.pullPolicy=Never
+# Apply standalone resources
+kubectl create namespace staging
+kubectl create namespace production
+kubectl apply -f deploy/clusterissuer.yaml
 
-# Add hosts entry (requires sudo)
+# Deploy via Argo CD
+kubectl apply -f deploy/argocd/staging.yaml
+kubectl apply -f deploy/argocd/production.yaml
+
+# Add hosts entries (requires sudo)
 echo '127.0.0.1 launchpad.local' | sudo tee -a /etc/hosts
+echo '127.0.0.1 staging.launchpad.local' | sudo tee -a /etc/hosts
 
 # Verify
 curl -sk https://launchpad.local/healthz
+curl -sk https://staging.launchpad.local/healthz
 ```
 
 ### Run Locally (no Kubernetes)
@@ -174,10 +186,52 @@ make test
 | `make helm-uninstall` | Remove from K8s |
 | `make grafana` | Port-forward Grafana (http://localhost:3000) |
 | `make prometheus` | Port-forward Prometheus (http://localhost:9090) |
+| `make argocd` | Port-forward Argo CD UI (https://localhost:8443) |
+
+## GitOps Deployment Flow
+
+```mermaid
+graph LR
+    Dev[Developer] -->|git push| GH[GitHub]
+    GH -->|trigger| CI[GitHub Actions]
+    CI -->|build + push image| GHCR[ghcr.io]
+    CI -->|commit image tag| GH
+    GH -->|Argo CD detects change| ArgoCD[Argo CD]
+    ArgoCD -->|sync| Staging[Staging namespace]
+    ArgoCD -->|sync| Prod[Production namespace]
+```
+
+Argo CD watches the repo and automatically syncs both environments when the Helm chart or values files change. CI builds the image, pushes it to ghcr.io, then commits the new image tag back to git — Argo CD picks up the commit and deploys.
+
+### Environments
+
+| Environment | Namespace | Host | Replicas | Values file |
+|-------------|-----------|------|----------|-------------|
+| Staging | `staging` | `staging.launchpad.local` | 1 | `values-staging.yaml` |
+| Production | `production` | `launchpad.local` | 2 | `values-production.yaml` |
+
+## Production vs Local Tradeoffs
+
+This project runs locally on kind. In a production environment, you'd make these changes:
+
+| Component | Local (this project) | Production |
+|-----------|---------------------|------------|
+| Kubernetes | kind (single node) | Managed K8s (EKS, GKE, AKS) |
+| Container registry | ghcr.io | ECR, GCR, or private registry |
+| TLS certificates | Self-signed (cert-manager) | Let's Encrypt via cert-manager (same setup, swap ClusterIssuer) |
+| Database | Postgres in-cluster (Bitnami Helm chart) | Managed database (RDS, Cloud SQL) |
+| Secrets | Kubernetes Secrets (base64) | Sealed Secrets, External Secrets Operator, or Vault |
+| Environments | Namespaces in same cluster | Separate clusters per environment |
+| DNS | /etc/hosts entries | Real DNS (Route 53, Cloud DNS) |
+| Observability | Self-hosted Prometheus + Grafana | Datadog, Grafana Cloud, or managed Prometheus |
+| Image pull | `kind load` (local) | Pull from registry (standard) |
+| Argo CD access | port-forward | Ingress with SSO/OAuth |
+
+The architecture and patterns are identical — managed services replace self-hosted components for operational efficiency.
 
 ## Roadmap
 
 - **Phase 1**: Go API, Docker, Helm, kind, GitHub Actions CI
-- **Phase 2** (current): Postgres, ingress + TLS, secrets, Prometheus + Grafana
-- **Phase 3**: Argo CD, GitOps deployment flow
+- **Phase 2**: Postgres, ingress + TLS, secrets, Prometheus + Grafana
+- **Phase 3** (current): Argo CD, GitOps deployment flow, environment separation
 - **Phase 4**: Argo Rollouts, policy enforcement, OpenTelemetry
