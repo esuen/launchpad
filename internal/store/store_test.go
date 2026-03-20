@@ -60,9 +60,15 @@ func TestGetNotFound(t *testing.T) {
 
 func TestList(t *testing.T) {
 	s := NewMemory()
-	s.Create("api-server", "v1.0.0", "production")
-	s.Create("api-server", "v1.1.0", "staging")
-	s.Create("web-app", "v2.0.0", "production")
+	if _, err := s.Create("api-server", "v1.0.0", "production"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := s.Create("api-server", "v1.1.0", "staging"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := s.Create("web-app", "v2.0.0", "production"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// List all.
 	all, err := s.List("", "")

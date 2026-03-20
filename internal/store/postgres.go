@@ -54,7 +54,6 @@ func (s *PostgresStore) List(service, environment string) ([]model.Deployment, e
 	if environment != "" {
 		query += fmt.Sprintf(` AND environment = $%d`, argN)
 		args = append(args, environment)
-		argN++
 	}
 
 	query += ` ORDER BY created_at DESC`
