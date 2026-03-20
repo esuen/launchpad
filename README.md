@@ -6,6 +6,8 @@ A deployment tracker API built with Go, deployed to Kubernetes. Demonstrates a p
 
 ![Argo CD Applications](docs/argocd-applications.png)
 
+![Argo CD Resource Tree](docs/argocd-resource-tree.png)
+
 ## Observability
 
 ![Grafana Dashboard](docs/grafana-dashboard.png)
