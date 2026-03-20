@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  tag: latest
+  tag: 5522039ec456e764fa60fcb69ee22e06a0104147
   pullPolicy: IfNotPresent
 
 secret:
