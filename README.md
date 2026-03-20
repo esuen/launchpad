@@ -1,6 +1,6 @@
 # Launchpad
 
-A deployment tracker API built with Go, deployed to Kubernetes. Demonstrates a production-shaped cloud-native architecture: CI/CD, containerization, Helm-based deployment, Postgres, TLS ingress, and full observability with Prometheus and Grafana.
+A deployment tracker API built with Go, deployed to Kubernetes via GitOps. Demonstrates a production-shaped cloud-native architecture: Argo CD for declarative deployments, CI/CD with GitHub Actions, Helm-based configuration, Postgres, TLS ingress, and full observability with Prometheus and Grafana.
 
 ## GitOps
 
@@ -18,13 +18,15 @@ A deployment tracker API built with Go, deployed to Kubernetes. Demonstrates a p
 graph LR
     Dev[Developer] -->|git push| GH[GitHub]
     GH -->|trigger| CI[GitHub Actions]
-    CI -->|lint + test| CI
     CI -->|build + push| GHCR[ghcr.io]
+    CI -->|commit image tag| GH
+    GH -->|detect change| ArgoCD[Argo CD]
 
     Client[Client] -->|HTTPS| Ingress[NGINX Ingress<br/>+ TLS via cert-manager]
 
     subgraph Kubernetes
-        Ingress -->|route| Svc[Service]
+        ArgoCD -->|sync| Svc[Service]
+        Ingress -->|route| Svc
         Svc --> PodA[Pod]
         Svc --> PodB[Pod]
         PodA --> PG[(Postgres)]
@@ -83,7 +85,9 @@ curl -sk https://launchpad.local/api/v1/deployments/?environment=production
 │   ├── server/              # HTTP handlers, middleware, routing
 │   └── store/               # Store interface, Postgres + in-memory implementations
 ├── deploy/
+│   ├── argocd/              # Argo CD Application resources (staging + production)
 │   ├── helm/launchpad/      # Helm chart (Deployment, Service, Ingress, Secret, ConfigMap)
+│   ├── clusterissuer.yaml   # cert-manager TLS issuer (cluster-scoped)
 │   ├── kind-config.yaml     # kind cluster config with ingress port mappings
 │   └── grafana-dashboard.json
 ├── .github/workflows/       # CI pipeline
@@ -152,8 +156,8 @@ kubectl create namespace production
 kubectl apply -f deploy/clusterissuer.yaml
 
 # Deploy via Argo CD
-kubectl apply -f deploy/argocd/staging.yaml
-kubectl apply -f deploy/argocd/production.yaml
+kubectl apply -f deploy/argocd/launchpad-staging.yaml
+kubectl apply -f deploy/argocd/launchpad-production.yaml
 
 # Add hosts entries (requires sudo)
 echo '127.0.0.1 launchpad.local' | sudo tee -a /etc/hosts
