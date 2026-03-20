@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  tag: 4b6a1ad99c015770e8e0729460d129ac97dd58ea
+  tag: efcca1dc10c544a5a57b99c5db2abd29a2969750
   pullPolicy: IfNotPresent
 
 secret:
