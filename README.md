@@ -230,7 +230,7 @@ This project runs locally on kind. In a production environment, you'd make these
 | Environments | Namespaces in same cluster | Separate clusters per environment |
 | DNS | /etc/hosts entries | Real DNS (Route 53, Cloud DNS) |
 | Observability | Self-hosted Prometheus + Grafana | Datadog, Grafana Cloud, or managed Prometheus |
-| Image pull | `kind load` (local) | Pull from registry (standard) |
+| Image pull | `kind load` for initial setup, then pulls from ghcr.io | Pull from private registry (ECR, GCR) with auth |
 | Argo CD access | port-forward | Ingress with SSO/OAuth |
 | GitOps sync | Polling (3 min interval) | GitHub webhook for near-instant sync |
 
