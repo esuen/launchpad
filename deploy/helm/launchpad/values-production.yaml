@@ -17,3 +17,14 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
+
+canary:
+  steps:
+    - setWeight: 10
+    - pause: {}
+    - setWeight: 25
+    - pause: {}
+    - setWeight: 50
+    - pause: {}
+    - setWeight: 75
+    - pause: {}

@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ .Release.Name }}
   labels:
@@ -43,3 +43,12 @@ spec:
             periodSeconds: 5
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+  strategy:
+    canary:
+      canaryService: {{ .Release.Name }}-canary
+      stableService: {{ .Release.Name }}
+      trafficRouting:
+        nginx:
+          stableIngress: {{ .Release.Name }}
+      steps:
+        {{- toYaml .Values.canary.steps | nindent 8 }}
