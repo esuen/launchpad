@@ -7,7 +7,7 @@ DOCKER_TAG := latest
 HELM_CHART := deploy/helm/launchpad
 HELM_RELEASE := launchpad
 
-.PHONY: build run test lint clean docker-build docker-run helm-lint helm-template helm-install helm-uninstall grafana prometheus argocd
+.PHONY: build run test lint clean docker-build docker-run helm-lint helm-template helm-install helm-uninstall grafana prometheus argocd rollouts-dashboard
 
 build:
 	go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/server
@@ -56,3 +56,7 @@ argocd:
 	@echo "Username: admin"
 	@echo "Password: $$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
 	kubectl port-forward svc/argocd-server -n argocd 8443:443
+
+rollouts-dashboard:
+	@echo "Argo Rollouts: http://localhost:3100"
+	kubectl argo rollouts dashboard

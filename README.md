@@ -104,6 +104,7 @@ curl -sk https://launchpad.local/api/v1/deployments/?environment=production
 - kind
 - kubectl
 - Helm
+- kubectl-argo-rollouts plugin (`brew install argoproj/tap/kubectl-argo-rollouts`)
 
 ### Deploy to kind
 
@@ -145,6 +146,10 @@ helm install grafana grafana/grafana --set adminPassword=admin \
 # Install Argo CD
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --server-side --force-conflicts
+
+# Install Argo Rollouts (controller pinned to v1.9.0)
+kubectl create namespace argo-rollouts
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/download/v1.9.0/install.yaml --server-side --force-conflicts
 
 # Build and load app image
 make docker-build
@@ -197,6 +202,7 @@ make test
 | `make grafana` | Port-forward Grafana (http://localhost:3000) |
 | `make prometheus` | Port-forward Prometheus (http://localhost:9090) |
 | `make argocd` | Port-forward Argo CD UI (https://localhost:8443) |
+| `make rollouts-dashboard` | Open Argo Rollouts dashboard (http://localhost:3100) |
 
 ## GitOps Deployment Flow
 
