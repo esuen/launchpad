@@ -35,3 +35,9 @@ canary:
     - pause: { duration: 30s }
     - setWeight: 75
     - pause: { duration: 30s }
+
+analysis:
+  successThreshold: 0.95
+  interval: 30s
+  count: 3
+  failureLimit: 1

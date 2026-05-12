@@ -21,10 +21,16 @@ resources:
 canary:
   steps:
     - setWeight: 10
-    - pause: {}
+    - analysis: &analysis
+        templates:
+          - templateName: launchpad-production-success-rate
+        args:
+          - name: canary-hash
+            valueFrom:
+              podTemplateHashValue: Latest
     - setWeight: 25
-    - pause: {}
+    - analysis: *analysis
     - setWeight: 50
-    - pause: {}
+    - analysis: *analysis
     - setWeight: 75
-    - pause: {}
+    - analysis: *analysis
