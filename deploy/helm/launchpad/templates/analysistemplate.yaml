@@ -9,6 +9,7 @@ spec:
     - name: canary-hash
   metrics:
     - name: success-rate
+      initialDelay: {{ .Values.analysis.initialDelay }}
       interval: {{ .Values.analysis.interval }}
       count: {{ .Values.analysis.count }}
       successCondition: result[0] >= {{ .Values.analysis.successThreshold }}
@@ -21,9 +22,9 @@ spec:
               namespace="{{ .Release.Namespace }}",
               rollouts_pod_template_hash="{{`{{args.canary-hash}}`}}",
               status!~"5.."
-            }[1m]))
+            }[{{ .Values.analysis.rateWindow }}]))
             /
             sum(rate(http_requests_total{
               namespace="{{ .Release.Namespace }}",
               rollouts_pod_template_hash="{{`{{args.canary-hash}}`}}"
-            }[1m]))
+            }[{{ .Values.analysis.rateWindow }}])) or vector(1)

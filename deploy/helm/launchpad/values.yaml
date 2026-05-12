@@ -41,3 +41,5 @@ analysis:
   interval: 30s
   count: 3
   failureLimit: 1
+  initialDelay: 60s
+  rateWindow: 2m
